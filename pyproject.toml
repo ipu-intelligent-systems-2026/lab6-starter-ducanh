@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lab6-starter"
+version = "0.1.0"
+description = "Week 6 Lab: Stateful Agent Orchestration & Graph Workflows"
+dependencies = [
+    "pydantic>=2.0.0",
+    "pytest>=8.0.0",
+    "python-dotenv>=1.0.0"
+]
