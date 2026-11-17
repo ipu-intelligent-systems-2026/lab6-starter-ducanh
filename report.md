@@ -1,6 +1,6 @@
 # Lab 6 Report: Stateful Agent Orchestration & Graph Workflows
 
-## Student Implementation Report
+##  Implementation Report
 
 ### Overview
 This lab implements a cyclic **Planner → Drafter ↔ Critic** `StateGraph` with persistent SQLite checkpointing. The graph models an iterative reflection loop where a draft is repeatedly revised based on critic feedback until approval or a hard iteration ceiling.
