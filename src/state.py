@@ -54,16 +54,36 @@ class SQLiteCheckpointer:
 
     def save(self, state: GraphState) -> None:
         """
-        TODO [Task 1.1]: Persist serialized GraphState into SQLite by thread_id.
-        - Serialize `state` using `state.model_dump_json()`.
-        - Insert or update row in `checkpoints` keyed on `state.thread_id`.
+        Persist serialized GraphState into SQLite by thread_id.
         """
-        raise NotImplementedError("TODO [Task 1.1]: Implement SQLiteCheckpointer.save")
+        state_json = state.model_dump_json()
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO checkpoints (thread_id, state_json)
+            VALUES (?, ?)
+            ON CONFLICT(thread_id) DO UPDATE SET
+                state_json = excluded.state_json,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (state.thread_id, state_json),
+        )
+        conn.commit()
+        conn.close()
 
     def load(self, thread_id: str) -> Optional[GraphState]:
         """
-        TODO [Task 1.2]: Restore GraphState from SQLite for the given thread_id.
-        - Query `state_json` for `thread_id`.
-        - Return `GraphState.model_validate_json(row[0])` if found, else `None`.
+        Restore GraphState from SQLite for the given thread_id.
         """
-        raise NotImplementedError("TODO [Task 1.2]: Implement SQLiteCheckpointer.load")
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT state_json FROM checkpoints WHERE thread_id = ?",
+            (thread_id,),
+        )
+        row = cur.fetchone()
+        conn.close()
+        if row is None:
+            return None
+        return GraphState.model_validate_json(row[0])

@@ -49,12 +49,13 @@ def critic_node(state: GraphState, evaluator_fn: Optional[Callable[[GraphState],
 
 def route_after_critic(state: GraphState) -> str:
     """
-    TODO [Task 2.1]: Conditional Routing Edge after Critic
-    - If `state.is_approved` is True: return `"END"`.
-    - If `state.revision_count >= state.max_iterations`: return `"END"` (enforce hard ceiling!).
-    - Otherwise: return `"drafter"` to loop back for another revision.
+    Conditional Routing Edge after Critic.
     """
-    raise NotImplementedError("TODO [Task 2.1]: Implement route_after_critic")
+    if state.is_approved:
+        return "END"
+    if state.revision_count >= state.max_iterations:
+        return "END"
+    return "drafter"
 
 def run_reflection_graph(
     initial_state: GraphState,
@@ -63,15 +64,31 @@ def run_reflection_graph(
     evaluator_fn: Optional[Callable[[GraphState], tuple[bool, list[str]]]] = None
 ) -> GraphState:
     """
-    TODO [Task 2.2]: Execute the Cyclic StateGraph Loop
-    1. Run `planner_node(state)` and save checkpoint if `checkpointer` is provided.
-    2. Loop:
-       a. Run `drafter_node(state, generator_fn)` and save checkpoint.
-       b. Run `critic_node(state, evaluator_fn)` and save checkpoint.
-       c. Call `next_step = route_after_critic(state)`.
-       d. If `next_step == "END"`:
-          - Set `state.status = "completed"` if `state.is_approved` else `"needs_attention"`.
-          - Save final checkpoint and break.
-    3. Return final `state`.
+    Execute the Cyclic StateGraph Loop:
+    Planner -> (Drafter <-> Critic) loop -> terminal status.
     """
-    raise NotImplementedError("TODO [Task 2.2]: Implement run_reflection_graph")
+    state = initial_state
+
+    # 1. Run planner
+    state = planner_node(state)
+    if checkpointer is not None:
+        checkpointer.save(state)
+
+    # 2. Loop: drafter -> critic -> route
+    while True:
+        state = drafter_node(state, generator_fn)
+        if checkpointer is not None:
+            checkpointer.save(state)
+
+        state = critic_node(state, evaluator_fn)
+        if checkpointer is not None:
+            checkpointer.save(state)
+
+        next_step = route_after_critic(state)
+        if next_step == "END":
+            state.status = "completed" if state.is_approved else "needs_attention"
+            if checkpointer is not None:
+                checkpointer.save(state)
+            break
+
+    return state
